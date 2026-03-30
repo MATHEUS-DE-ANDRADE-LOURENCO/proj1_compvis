@@ -7,6 +7,7 @@
 - Matheus de Andrade Lourenço (RA 10419691)
 - Murillo Cardoso Ferreira (RA 10418082)
 - Pietro Zanaga Neto (RA 10418574)
+- Lucas Tuon de Matos (RA 10417987)
 
 ## Contexto do Projeto
 
