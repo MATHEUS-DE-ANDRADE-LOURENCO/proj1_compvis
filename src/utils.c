@@ -320,9 +320,175 @@ void render_histogram_graph(Window *win_interface, ImageStats *stats, TTF_Font *
     }
 
 
-    SDL_RenderPresent(win_interface->renderer);
+    
 }
 
+bool equalize_histogram(Window *window, Image *image)
+{
+    if (!window || !window->renderer || !image || !image->surface) {
+        SDL_Log("\t- Parâmetros inválidos para equalize_histogram()");
+        return false;
+    }
+
+    SDL_Log("> Iniciando equalização do histograma...");
+
+    int histogram[256] = {0};
+    int cdf[256] = {0};
+    int total_pixels = image->surface->w * image->surface->h;
+
+    if (!SDL_LockSurface(image->surface)) {
+        SDL_Log("\t-Erro ao travar superfície: %s", SDL_GetError());
+        return false;
+    }
+
+    Uint32 *pixels = (Uint32 *)image->surface->pixels;
+    const SDL_PixelFormatDetails *format = SDL_GetPixelFormatDetails(image->surface->format);
+
+    for (int i = 0; i < total_pixels; ++i) {
+        Uint8 r, g, b, a;
+        SDL_GetRGBA(pixels[i], format, NULL, &r, &g, &b, &a);
+        histogram[r]++;
+    }
+
+    cdf[0] = histogram[0];
+    for (int i = 1; i < 256; ++i) {
+        cdf[i] = cdf[i-1] + histogram[i];
+    }
+
+    int cdf_min = 0;
+    for (int i = 0; i < 256; ++i) {
+        if (cdf[i] > 0) {
+            cdf_min = cdf[i];
+            break;
+        }
+    }
+
+    for (int i = 0; i < total_pixels; ++i) {
+        Uint8 r, g, b, a;
+        SDL_GetRGBA(pixels[i], format, NULL, &r, &g, &b, &a);
+
+        int new_value = (int)roundf( ((cdf[r] - cdf_min) * 255.0f) / (total_pixels - cdf_min) );
+        if (new_value < 0) new_value = 0;
+        if (new_value > 255) new_value = 255;
+
+        pixels[i] = SDL_MapRGBA(format, NULL, (Uint8)new_value, (Uint8)new_value, (Uint8)new_value, a);
+    }
+
+    SDL_UnlockSurface(image->surface);
+
+    if (image->texture) SDL_DestroyTexture(image->texture);
+    image->texture = SDL_CreateTextureFromSurface(window->renderer, image->surface);
+
+    if (!image->texture) {
+        SDL_Log("\t-Erro ao criar textura após equalização: %s", SDL_GetError());
+        return false;
+    }
+
+    SDL_Log("> Equalização do histograma concluída!");
+    return true;
+}
+
+void render_button(Window *win, EqualizeButton *btn, TTF_Font *font)
+{
+    if (!win || !win->renderer || !btn) return;
+
+    SDL_Color color;
+    switch (btn->state) {
+        case BUTTON_STATE_HOVER:   color = (SDL_Color){100, 180, 255, 255}; break; // azul claro
+        case BUTTON_STATE_PRESSED: color = (SDL_Color){0,   100, 200, 255}; break; // azul escuro
+        default:                   color = (SDL_Color){50,  130, 255, 255}; break; // azul normal
+    }
+
+    SDL_SetRenderDrawColor(win->renderer, color.r, color.g, color.b, color.a);
+    SDL_RenderFillRect(win->renderer, &btn->rect);
+
+
+    SDL_SetRenderDrawColor(win->renderer, 255, 255, 255, 255);
+    SDL_RenderRect(win->renderer, &btn->rect);
+
+    if (font && btn->text) {
+        SDL_Surface *surf = TTF_RenderText_Blended(font, btn->text, 0, (SDL_Color){255,255,255,255});
+        if (surf) {
+            SDL_Texture *tex = SDL_CreateTextureFromSurface(win->renderer, surf);
+            if (tex) {
+                float text_w = (float)surf->w;
+                float text_h = (float)surf->h;
+                SDL_FRect dst = {
+                    btn->rect.x + (btn->rect.w - text_w) / 2,
+                    btn->rect.y + (btn->rect.h - text_h) / 2,
+                    text_w, text_h
+                };
+                SDL_RenderTexture(win->renderer, tex, NULL, &dst);
+                SDL_DestroyTexture(tex);
+            }
+            SDL_DestroySurface(surf);
+        }
+    }
+}
+
+bool handle_button_event(EqualizeButton *btn, SDL_Event *event)
+{
+    if (!btn || !event) return false;
+
+    float mx = 0, my = 0;
+    bool inside = false;
+
+    if (event->type == SDL_EVENT_MOUSE_MOTION) {
+        mx = event->motion.x;
+        my = event->motion.y;
+    }
+    else if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN || 
+             event->type == SDL_EVENT_MOUSE_BUTTON_UP) {
+        mx = event->button.x;
+        my = event->button.y;
+    }
+    else return false;
+
+    
+    inside = (mx >= btn->rect.x && mx <= btn->rect.x + btn->rect.w &&
+              my >= btn->rect.y && my <= btn->rect.y + btn->rect.h);
+
+    if (!inside) {
+        btn->state = BUTTON_STATE_NORMAL;
+        return false;
+    }
+
+    if (event->type == SDL_EVENT_MOUSE_MOTION) {
+        btn->state = BUTTON_STATE_HOVER;
+    }
+    else if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN && event->button.button == SDL_BUTTON_LEFT) {
+        btn->state = BUTTON_STATE_PRESSED;
+    }
+    else if (event->type == SDL_EVENT_MOUSE_BUTTON_UP && event->button.button == SDL_BUTTON_LEFT) {
+        
+        btn->isEqualized = !btn->isEqualized;
+        btn->text = btn->isEqualized ? "Ver original" : "Equalizar";
+        btn->state = BUTTON_STATE_HOVER;
+        return true;   
+    }
+
+    return false;
+}
+
+bool save_image(const char *filename, Image *image)
+{
+    if (!image || !image->surface) {
+        SDL_Log("> Erro: Nenhuma imagem para salvar.");
+        return false;
+    }
+
+    if (!filename) {
+        filename = "output_image.png";
+    }
+
+    if (IMG_SavePNG(image->surface, filename) == 0) {
+        SDL_Log("> Imagem salva com sucesso como: %s", filename);
+        return true;
+    } else {
+        SDL_Log("> Erro ao salvar imagem: %s", SDL_GetError());
+        return false;
+    }
+}
 
 void shutdown(void)
 {
@@ -330,4 +496,3 @@ void shutdown(void)
     TTF_Quit();
     SDL_Quit();
 }
-
