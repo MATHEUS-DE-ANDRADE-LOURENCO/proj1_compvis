@@ -45,6 +45,19 @@ typedef struct ImageStats {
   char *contrast_level; // alto, medio ou baixo
 } ImageStats;
 
+typedef enum {
+    BUTTON_STATE_NORMAL,    // azul normal
+    BUTTON_STATE_HOVER,     // azul claro (mouse em cima)
+    BUTTON_STATE_PRESSED    // azul escuro (clicado)
+} ButtonState;
+
+typedef struct {
+    SDL_FRect rect;  // posição e tamanho do botão
+    ButtonState state;
+    bool isEqualized;  // true = imagem está equalizada
+    const char* text; // texto atual do botão
+} EqualizeButton;
+
 SDL_AppResult initialize_SDL_Windows_Renderers(Window *window1, Window *window2, Image *image);
 void render_image(Window *window, Image *image);
 void load_image(const char *filename, Window *window, Image *image);
@@ -56,6 +69,10 @@ const char* calculate_contrast_level(float std_dev);
 void calculate_image_stats(Image *image, ImageStats *stats);
 void draw_text(SDL_Renderer *renderer, TTF_Font *font, const char *text, int x, int y);
 void render_histogram_graph(Window *win_interface, ImageStats *stats, TTF_Font *font);
+bool equalize_histogram(Window *window, Image *image);
 void shutdown(void);
+void render_button(Window *win, EqualizeButton *btn, TTF_Font *font);
+bool handle_button_event(EqualizeButton *btn, SDL_Event *event);
+bool save_image(const char *filename, Image *image);
 
 #endif // PROJ8_UTILS_H
