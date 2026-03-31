@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
 
    // Inicialização da SDL
 
-    // Inicializa as janelas e renderizadores
+   // Inicializa as janelas e renderizadores
    Window *window_1 = malloc(sizeof(Window));
    *window_1 = (Window){.window = NULL, .renderer = NULL};
 
@@ -60,72 +60,82 @@ int main(int argc, char *argv[]) {
             SDL_Log("> Falha ao converter a imagem para escala de cinza.");
         }
 
-        // Ajustar tamanho da janela à imagem
-        int image_w = (int)image->rect.w;
-        int image_h = (int)image->rect.h;
 
-        int top, left = 0;
-        SDL_Log("> w: %d, h: %d", image_w, image_h);
-        if(image_w > WINDOW_WIDTH || image_h > WINDOW_HEIGHT) {
-            // Obtém o tamanho das bordas da janela 1
-            SDL_GetWindowBordersSize(window_1->window, &top, &left, NULL, NULL);
-            SDL_Log("> Ajustando tamanho da imagem de (%d, %d) para (%d, %d), e alterando para a posição (%d, %d)",
-            WINDOW_WIDTH, WINDOW_HEIGHT, image_w, image_h, left, top);
-
-            SDL_SetWindowSize(window_1->window, image_w, image_h);
-            SDL_SetWindowPosition(window_1->window, left, top);
-
-            SDL_SyncWindow(window_1->window);
-
+    Image original_image = *image;
+    if (image->surface) {
+        original_image.surface = SDL_DuplicateSurface(image->surface);
+        if (original_image.surface) {
+            original_image.texture = SDL_CreateTextureFromSurface(window_1->renderer, original_image.surface);
+            original_image.rect   = image->rect;
         }
-
-        // Converter a image para a escala de cinzas
-    
-
-   // Realizar a conversão para a escala de cinza
-
-   // Mostrar as duas interfaces (?)
+    }
 
 
+    EqualizeButton button = {
+        .rect         = {210.0f, 100.0f, 220.0f, 55.0f},  // acima do histograma, centralizado
+        .state        = BUTTON_STATE_NORMAL,
+        .isEqualized  = false,
+        .text         = "Equalizar"
+    };
 
-    // Destrói os recursos alocados (janelas, renderizadores, superfície, textura, etc.)
-    bool mustRefresh = false;
-
-
-    // 4. Analise e exibicao do histograma
 
     ImageStats stats;
-
-    // Calcular o histograma, media e desvio padrao
     calculate_image_stats(image, &stats);
 
-    // Renderizar o grádico na janela de interface
-    render_histogram_graph(window_2, &stats, font);
-    
-    // Renderizar a imagem processada na janela principal
-    render_image(window_1, image);
 
-    
-
-    // Loop Principal
     bool isRunning = true;
     SDL_Event event;
+
     while (isRunning) {
-         
+        bool button_clicked = false;
+
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) {
                 isRunning = false;
             }
+
+            // Processa eventos do botão
+            if (handle_button_event(&button, &event)) {
+                button_clicked = true;
+            }
+
+
+            if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_S) {
+                save_image("output_image.png", image);
+            }
         }
 
-        if(mustRefresh) render_image(window_1, image);
+        if (button_clicked) {
+            if (button.isEqualized) {
+                equalize_histogram(window_1, image);
+            } else {
+                // Reverter para original
+                destroy_image(image);
+
+                image->surface = SDL_DuplicateSurface(original_image.surface);
+                if (image->surface) {
+                    image->texture = SDL_CreateTextureFromSurface(window_1->renderer, image->surface);
+                    image->rect    = original_image.rect;
+                } else {
+                    SDL_Log("> ERRO: Falha ao duplicar surface original!");
+                }
+            }
+
+            calculate_image_stats(image, &stats);
+        }
+
+        render_image(window_1, image);
+
+        render_histogram_graph(window_2, &stats, font);
+        render_button(window_2, &button, font);
+        SDL_RenderPresent(window_2->renderer);
+
+        SDL_Delay(16);
     }
 
-    // Fechando a fonte
-    if (font) {
-        TTF_CloseFont(font);
-    }
- 
+    destroy_image(&original_image);   
+
+    if (font) TTF_CloseFont(font);
 
     destroy_image(image);
     destroy_window(window_2);
