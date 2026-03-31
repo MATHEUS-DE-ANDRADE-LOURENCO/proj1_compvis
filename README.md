@@ -22,7 +22,7 @@ O programa recebe como entrada o caminho de uma imagem via linha de comando.
 Ocorre uma verificação para ver se a imagem é colorido e, se for necessário, aplica uma conversão para escala de cinza utilizando a fórmula: Y = 0.2125 x R + 0.7154 x G + 0.0721 x B
 
 - **Interface:**
-O programa, após ser executado, abre uma janela principal adaptada ao tamanho da imagem que contêm a imagem processada e uma janela secundária que exibe o histograma, a intensidade media (brilho) e o desvio padrão (contraste).
+O programa, após ser executado, abre uma janela principal adaptada ao tamanho da imagem que contêm a imagem processada e uma janela secundária que exibe o histograma, a intensidade media (brilho) e o desvio padrão (contraste). Os textos foram escritos com a biblioteca SDL3_ttf.
 
 - **Análise Estatística:**
 O brilho (intensidade média) é classificado como Claro (brilho > 170), Médio (85 < brilho > 170) ou Escuro (brilho < 85).
