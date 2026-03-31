@@ -8,13 +8,16 @@
 
 #include "utils.h"
 
-
+/**
+ * Inicializa os subsistemas da SDL3 e cria as duas janelas do projeto.
+ */
 SDL_AppResult initialize_SDL_Windows_Renderers(Window *window1, Window *window2, Image *image)
 {
     (void)image;
 
     SDL_Log("> Inicializando SDL...");
 
+    // Inicializa o subsistema de vídeo
     if (!SDL_Init(SDL_INIT_VIDEO))
     {
         SDL_Log("\t-Erro ao iniciar a SDL: %s", SDL_GetError());
@@ -22,12 +25,13 @@ SDL_AppResult initialize_SDL_Windows_Renderers(Window *window1, Window *window2,
         return SDL_APP_FAILURE;
     }
 
-    // Inicia a SDL_ttf
+    // Inicializa a biblioteca de fontes para renderizar textos no gráfico
     if (!TTF_Init()) {
         SDL_Log("\t-Erro ao iniciar a SDL_ttf: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
 
+    // Criação da janela principal ("Imagem")
     SDL_Log("> Criando janelas e renderizadores...");
     if (!SDL_CreateWindowAndRenderer("Imagem", WINDOW_WIDTH, WINDOW_HEIGHT, 0, &window1->window, &window1->renderer))
     {
@@ -35,6 +39,7 @@ SDL_AppResult initialize_SDL_Windows_Renderers(Window *window1, Window *window2,
         return SDL_APP_FAILURE;
     }
 
+    // Criação da janela de estatísticas ("Interface")
     if (!SDL_CreateWindowAndRenderer("Interface", WINDOW_WIDTH, WINDOW_HEIGHT, 0, &window2->window, &window2->renderer))
     {
         SDL_Log("\t-Erro ao criar a janela e/ou renderizador (window2): %s", SDL_GetError());
@@ -44,6 +49,9 @@ SDL_AppResult initialize_SDL_Windows_Renderers(Window *window1, Window *window2,
     return SDL_APP_CONTINUE;
 }
 
+/**
+ * Carrega a imagem do disco, converte para RGBA32 (CPU) e cria a textura correspondente (GPU).
+ */
 void load_image(const char *filename, Window *window, Image *image)
 {
     SDL_Log("> Carregando imagem...");
@@ -54,7 +62,7 @@ void load_image(const char *filename, Window *window, Image *image)
         return;
     }
 
-    destroy_image(image);
+    destroy_image(image); // Limpa recursos antigos antes de carregar nova imagem
 
     SDL_Surface *loaded_surface = IMG_Load(filename);
     if (!loaded_surface)
@@ -62,7 +70,8 @@ void load_image(const char *filename, Window *window, Image *image)
         SDL_Log("\t-Erro ao carregar a imagem: %s", SDL_GetError());
         return;
     }
-
+    
+    // Padroniza o formato de pixels para 32 bits (RGBA) para facilitar o acesso à memória
     image->surface = SDL_ConvertSurface(loaded_surface, SDL_PIXELFORMAT_RGBA32);
     SDL_DestroySurface(loaded_surface);
     if (!image->surface)
@@ -70,7 +79,8 @@ void load_image(const char *filename, Window *window, Image *image)
         SDL_Log("\t-Erro ao converter a imagem para RGBA32: %s", SDL_GetError());
         return;
     }
-
+    
+    // Cria a textura para exibição via hardware
     image->texture = SDL_CreateTextureFromSurface(window->renderer, image->surface);
     if (!image->texture)
     {
@@ -81,6 +91,9 @@ void load_image(const char *filename, Window *window, Image *image)
     SDL_GetTextureSize(image->texture, &image->rect.w, &image->rect.h);
 }
 
+/**
+ * Converte a imagem para tons de cinza usando pesos de luminância (percepção humana).
+ */
 bool convert_image_to_grayscale(Window *window, Image *image)
 {
     if (!window || !window->renderer || !image || !image->surface)
@@ -89,6 +102,7 @@ bool convert_image_to_grayscale(Window *window, Image *image)
         return false;
     }
 
+    // Trava a superfície na RAM para leitura e escrita direta nos pixels
     if (!SDL_LockSurface(image->surface))
     {
         SDL_Log("\t-Erro ao travar superficie para conversao em escala de cinza: %s", SDL_GetError());
@@ -108,6 +122,7 @@ bool convert_image_to_grayscale(Window *window, Image *image)
 
         SDL_GetRGBA(pixels[i], format, NULL, &r, &g, &b, &a);
 
+        // Cálculo de cinza ponderado: Verde tem maior peso por ser mais brilhante ao olho humano
         // I = 0.2125 * R + 0.7154 * G + 0.0721 * B
         int gray = (int)(0.2125f * r + 0.7154f * g + 0.0721f * b + 0.5f);
         if (gray < 0)
@@ -119,11 +134,13 @@ bool convert_image_to_grayscale(Window *window, Image *image)
             gray = 255;
         }
 
+        // Atribui o valor calculado aos três canais de cor
         pixels[i] = SDL_MapRGBA(format, NULL, (Uint8)gray, (Uint8)gray, (Uint8)gray, a);
     }
 
     SDL_UnlockSurface(image->surface);
 
+    // Atualiza a textura na GPU para refletir as mudanças feitas na CPU
     if (image->texture)
     {
         SDL_DestroyTexture(image->texture);
@@ -140,6 +157,9 @@ bool convert_image_to_grayscale(Window *window, Image *image)
     return true;
 }
 
+/**
+ * Libera os recursos de memória da imagem (CPU e GPU).
+ */
 void destroy_image(Image *image)
 {
     if (!image)
@@ -147,12 +167,14 @@ void destroy_image(Image *image)
         return;
     }
 
+    // Libera a textura da memória de vídeo (GPU)
     if (image->texture)
     {
         SDL_DestroyTexture(image->texture);
         image->texture = NULL;
     }
 
+    // Libera a superfície da memória RAM (CPU)
     if (image->surface)
     {
         SDL_DestroySurface(image->surface);
@@ -160,16 +182,25 @@ void destroy_image(Image *image)
     }
 }
 
+/**
+ * Desenha a imagem na janela principal.
+ */
 void render_image(Window *window, Image *image)
 {
-  SDL_SetRenderDrawColor(window->renderer, 128, 128, 128, 255);
-  SDL_RenderClear(window->renderer);
+    // Define cor cinza para limpar o fundo e evitar rastros de frames anteriores
+    SDL_SetRenderDrawColor(window->renderer, 128, 128, 128, 255);
+    SDL_RenderClear(window->renderer);
 
-  SDL_RenderTexture(window->renderer, image->texture, &image->rect, &image->rect);
+    // Copia a textura da GPU para o renderizador usando as coordenadas do rect
+    SDL_RenderTexture(window->renderer, image->texture, &image->rect, &image->rect);
 
-  SDL_RenderPresent(window->renderer);
+    // Atualiza a tela (Double Buffering: move do backbuffer para o frontbuffer)
+    SDL_RenderPresent(window->renderer);
 }
 
+/**
+ * Destrói a janela e seu respectivo renderizador.
+ */
 void destroy_window(Window *window)
 {
     if (!window)
@@ -177,6 +208,7 @@ void destroy_window(Window *window)
         return;
     }
 
+    // A destruição deve seguir a ordem inversa da criação para evitar erros
     if (window->renderer)
     {
         SDL_DestroyRenderer(window->renderer);
@@ -266,6 +298,9 @@ void draw_text(SDL_Renderer *renderer, TTF_Font *font, const char *text, int x, 
     SDL_DestroyTexture(texture);
 }
 
+/**
+ * Desenha o histograma e estatísticas (Média/Desvio Padrão) na janela secundária.
+ */
 void render_histogram_graph(Window *win_interface, ImageStats *stats, TTF_Font *font) {
     if (!win_interface || !win_interface->renderer || !stats) return;
 
@@ -323,6 +358,9 @@ void render_histogram_graph(Window *win_interface, ImageStats *stats, TTF_Font *
     
 }
 
+/**
+ * Realiza a equalização de histograma baseada na Função de Distribuição Acumulada (CDF).
+ */
 bool equalize_histogram(Window *window, Image *image)
 {
     if (!window || !window->renderer || !image || !image->surface) {
@@ -344,17 +382,20 @@ bool equalize_histogram(Window *window, Image *image)
     Uint32 *pixels = (Uint32 *)image->surface->pixels;
     const SDL_PixelFormatDetails *format = SDL_GetPixelFormatDetails(image->surface->format);
 
+    // 1. Geração do Histograma original
     for (int i = 0; i < total_pixels; ++i) {
         Uint8 r, g, b, a;
         SDL_GetRGBA(pixels[i], format, NULL, &r, &g, &b, &a);
         histogram[r]++;
     }
 
+    // 2. Cálculo da CDF (acumulada do histograma)
     cdf[0] = histogram[0];
     for (int i = 1; i < 256; ++i) {
         cdf[i] = cdf[i-1] + histogram[i];
     }
 
+    // 3. Encontra o valor mínimo não nulo da CDF para normalização
     int cdf_min = 0;
     for (int i = 0; i < 256; ++i) {
         if (cdf[i] > 0) {
@@ -363,6 +404,7 @@ bool equalize_histogram(Window *window, Image *image)
         }
     }
 
+    // 4. Aplicação da fórmula de mapeamento para redistribuir as intensidades
     for (int i = 0; i < total_pixels; ++i) {
         Uint8 r, g, b, a;
         SDL_GetRGBA(pixels[i], format, NULL, &r, &g, &b, &a);
@@ -376,6 +418,7 @@ bool equalize_histogram(Window *window, Image *image)
 
     SDL_UnlockSurface(image->surface);
 
+    // Atualiza textura final para renderização
     if (image->texture) SDL_DestroyTexture(image->texture);
     image->texture = SDL_CreateTextureFromSurface(window->renderer, image->surface);
 
@@ -388,24 +431,28 @@ bool equalize_histogram(Window *window, Image *image)
     return true;
 }
 
+/**
+ * Desenha o botão de equalização na interface, alterando a cor conforme o estado (Mouse).
+ */
 void render_button(Window *win, EqualizeButton *btn, TTF_Font *font)
 {
     if (!win || !win->renderer || !btn) return;
 
     SDL_Color color;
+    // Lógica de Feedback Visual: Altera a tonalidade de azul conforme interação
     switch (btn->state) {
         case BUTTON_STATE_HOVER:   color = (SDL_Color){100, 180, 255, 255}; break; // azul claro
         case BUTTON_STATE_PRESSED: color = (SDL_Color){0,   100, 200, 255}; break; // azul escuro
         default:                   color = (SDL_Color){50,  130, 255, 255}; break; // azul normal
     }
 
+    // Desenha o corpo preenchido e a borda branca do botão
     SDL_SetRenderDrawColor(win->renderer, color.r, color.g, color.b, color.a);
     SDL_RenderFillRect(win->renderer, &btn->rect);
-
-
     SDL_SetRenderDrawColor(win->renderer, 255, 255, 255, 255);
     SDL_RenderRect(win->renderer, &btn->rect);
 
+    // Renderiza o texto centralizado dentro do retângulo do botão
     if (font && btn->text) {
         SDL_Surface *surf = TTF_RenderText_Blended(font, btn->text, 0, (SDL_Color){255,255,255,255});
         if (surf) {
@@ -426,13 +473,17 @@ void render_button(Window *win, EqualizeButton *btn, TTF_Font *font)
     }
 }
 
+/**
+ * Gerencia a lógica de colisão do mouse e troca de estado do botão.
+ */
 bool handle_button_event(EqualizeButton *btn, SDL_Event *event)
 {
     if (!btn || !event) return false;
 
     float mx = 0, my = 0;
     bool inside = false;
-
+    
+    // Captura coordenadas conforme o tipo de evento (movimento ou clique)
     if (event->type == SDL_EVENT_MOUSE_MOTION) {
         mx = event->motion.x;
         my = event->motion.y;
@@ -444,7 +495,7 @@ bool handle_button_event(EqualizeButton *btn, SDL_Event *event)
     }
     else return false;
 
-    
+    // Teste de colisão (Bounding Box): verifica se o mouse está dentro do botão
     inside = (mx >= btn->rect.x && mx <= btn->rect.x + btn->rect.w &&
               my >= btn->rect.y && my <= btn->rect.y + btn->rect.h);
 
@@ -453,6 +504,7 @@ bool handle_button_event(EqualizeButton *btn, SDL_Event *event)
         return false;
     }
 
+    // Máquina de estados do botão
     if (event->type == SDL_EVENT_MOUSE_MOTION) {
         btn->state = BUTTON_STATE_HOVER;
     }
@@ -460,7 +512,7 @@ bool handle_button_event(EqualizeButton *btn, SDL_Event *event)
         btn->state = BUTTON_STATE_PRESSED;
     }
     else if (event->type == SDL_EVENT_MOUSE_BUTTON_UP && event->button.button == SDL_BUTTON_LEFT) {
-        
+        // Toggle: alterna entre os estados 'Equalizada' e 'Original' no clique
         btn->isEqualized = !btn->isEqualized;
         btn->text = btn->isEqualized ? "Ver original" : "Equalizar";
         btn->state = BUTTON_STATE_HOVER;
@@ -470,6 +522,9 @@ bool handle_button_event(EqualizeButton *btn, SDL_Event *event)
     return false;
 }
 
+/**
+ * Salva a superfície atual da imagem em um arquivo PNG no disco.
+ */
 bool save_image(const char *filename, Image *image)
 {
     if (!image || !image->surface) {
@@ -481,6 +536,7 @@ bool save_image(const char *filename, Image *image)
         filename = "output_image.png";
     }
 
+    // Utiliza a biblioteca SDL_image para codificar os pixels da RAM em formato PNG
     if (IMG_SavePNG(image->surface, filename) == 0) {
         SDL_Log("> Imagem salva com sucesso como: %s", filename);
         return true;
@@ -490,9 +546,12 @@ bool save_image(const char *filename, Image *image)
     }
 }
 
+/**
+ * Finaliza as bibliotecas e limpa os sistemas da SDL3.
+ */
 void shutdown(void)
 {
     SDL_Log("> Encerrando o SDL");
-    TTF_Quit();
-    SDL_Quit();
+    TTF_Quit();    // Encerra sistema de fontes
+    SDL_Quit();    // Encerra sistema de vídeo e áudio
 }
