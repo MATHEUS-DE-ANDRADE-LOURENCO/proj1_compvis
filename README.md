@@ -28,6 +28,9 @@ O programa, após ser executado, abre uma janela principal adaptada ao tamanho d
 O brilho (intensidade média) é classificado como Claro (brilho > 170), Médio (85 < brilho > 170) ou Escuro (brilho < 85).
 O contraste (desvio padrão) é classificado como Alto (contraste < 40), Médio (40 < contraste > 80) ou Baixo (contraste < 80)
 
+- **Criação do Botão:**
+ADICIONAR AQUI A LOGICA DA EQUALIZAÇÃO
+
 - **Equalização do Histograma:**
 ADICIONAR AQUI A LOGICA DA EQUALIZAÇÃO
 
@@ -56,16 +59,13 @@ O projeto utiliza um Makefile para gerenciar as dependências e o processo de co
 - Matheus de Andrade Lourenço
 
 **3. Interface Gráfica:**  
-- Nome 
-- Nome 
+- Pietro Zanaga Neto
 
 **4. Análise e Exibição do Histograma:**  
 - Lucas Tuon de Matos
-- Nome 
 
 **5. Equalização do Histograma:**  
-- Nome 
-- Nome 
+- Pietro Zanaga Neto
 
 **6. Salvar Imagem:**  
 - Nome 
@@ -73,4 +73,5 @@ O projeto utiliza um Makefile para gerenciar as dependências e o processo de co
 
 **7. Relatório:**  
 - Lucas Tuon de Matos
-- Nome 
+- Matheus de Andrade Lourenço
+- Murillo Cardoso Ferreira
