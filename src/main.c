@@ -3,6 +3,7 @@
 * - Matheus de Andrade Lourenço (RA 10419691)
 * - Murillo Cardoso Ferreira (RA 10418082)
 * - Pietro Zanaga Neto (RA 10418574)
+* - Lucas Tuon de Matos (RA 10417987)
 */
 
 //------------------------------------------------------------------------------
@@ -10,7 +11,7 @@
 //------------------------------------------------------------------------------
 
 // Funções auxiliares
-# include "utils.h"
+#include "utils.h"
 ///------------------------------------------------------------------------------
 
 int main(int argc, char *argv[]) {
@@ -42,6 +43,12 @@ int main(int argc, char *argv[]) {
         free(window_2);
         free(window_1);
         return SDL_APP_FAILURE;
+    }
+
+    // Abrindo a fonte arial para o SDL_ttf
+    TTF_Font *font = TTF_OpenFont("arial.ttf", 18); 
+    if (!font) {
+        SDL_Log("> Erro ao carregar fonte: %s", SDL_GetError());
     }
 
     // Carregando a imagem no arquivo
@@ -76,14 +83,31 @@ int main(int argc, char *argv[]) {
     
 
    // Realizar a conversão para a escala de cinza
-   
+
    // Mostrar as duas interfaces (?)
+
+
 
     // Destrói os recursos alocados (janelas, renderizadores, superfície, textura, etc.)
     bool mustRefresh = false;
 
+
+    // 4. Analise e exibicao do histograma
+
+    ImageStats stats;
+
+    // Calcular o histograma, media e desvio padrao
+    calculate_image_stats(image, &stats);
+
+    // Renderizar o grádico na janela de interface
+    render_histogram_graph(window_2, &stats, font);
+    
+    // Renderizar a imagem processada na janela principal
     render_image(window_1, image);
 
+    
+
+    // Loop Principal
     bool isRunning = true;
     SDL_Event event;
     while (isRunning) {
@@ -97,6 +121,10 @@ int main(int argc, char *argv[]) {
         if(mustRefresh) render_image(window_1, image);
     }
 
+    // Fechando a fonte
+    if (font) {
+        TTF_CloseFont(font);
+    }
  
 
     destroy_image(image);
