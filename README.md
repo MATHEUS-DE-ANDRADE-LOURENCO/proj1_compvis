@@ -71,7 +71,10 @@ O projeto utiliza um Makefile para gerenciar as dependências e o processo de co
 - Nome 
 - Nome 
 
-**7. Relatório:**  
+**7. Gerenciamento do Repositório:**
+- Matheus de Andrade Lourenço
+
+**8. Relatório:**  
 - Lucas Tuon de Matos
 - Matheus de Andrade Lourenço
 - Murillo Cardoso Ferreira
