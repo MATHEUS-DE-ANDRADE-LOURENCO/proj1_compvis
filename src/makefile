@@ -15,11 +15,18 @@ SDL_IMAGE_LIB_DIR = $(SDL_IMAGE_ROOT)/lib
 SDL_IMAGE_DLL_DIR = $(SDL_IMAGE_ROOT)/bin
 SDL_IMAGE_DLL_FILE = SDL3_image.dll
 
+# SDL3_ttf dentro do workspace (pacote precompilado x86_64)
+SDL_TTF_ROOT = ../SDL3_ttf
+SDL_TTF_INC_DIR = $(SDL_TTF_ROOT)/include
+SDL_TTF_LIB_DIR = $(SDL_TTF_ROOT)/lib
+SDL_TTF_DLL_DIR = $(SDL_TTF_ROOT)/bin
+SDL_TTF_DLL_FILE = SDL3_ttf.dll
+
 CC = gcc
 CFLAGS = -std=c23 -Wall -Wextra -Wpedantic -Wno-unused-result
-LDFLAGS = -L$(SDL_LIB_DIR) -L$(SDL_IMAGE_LIB_DIR)
-LDLIBS = -lSDL3 -lSDL3_image
-INC_DIRS = -I$(SDL_INC_DIR) -I$(SDL_IMAGE_INC_DIR)
+LDFLAGS = -L$(SDL_LIB_DIR) -L$(SDL_IMAGE_LIB_DIR) -L$(SDL_TTF_LIB_DIR)
+LDLIBS = -lSDL3 -lSDL3_image -lSDL3_ttf
+INC_DIRS = -I$(SDL_INC_DIR) -I$(SDL_IMAGE_INC_DIR) -I$(SDL_TTF_INC_DIR)
 
 SRC = $(wildcard *.c)
 OBJ = $(SRC:.c=.o)
@@ -35,7 +42,8 @@ $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) $(INC_DIRS) -o $(TARGET).exe $^ $(LDFLAGS) $(LDLIBS)
 	powershell -NoProfile -Command "Copy-Item -Force '$(SDL_DLL_DIR)/$(SDL_DLL_FILE)' './$(SDL_DLL_FILE)'"
 	powershell -NoProfile -Command "Copy-Item -Force '$(SDL_IMAGE_DLL_DIR)/$(SDL_IMAGE_DLL_FILE)' './$(SDL_IMAGE_DLL_FILE)'"
-
+	powershell -NoProfile -Command "Copy-Item -Force '$(SDL_TTF_DLL_DIR)/$(SDL_TTF_DLL_FILE)' './$(SDL_TTF_DLL_FILE)'"
+	
 run: all
 	./$(TARGET).exe "kodim23.png"
 
