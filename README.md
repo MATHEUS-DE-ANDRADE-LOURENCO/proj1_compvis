@@ -11,7 +11,7 @@
 
 ## Contexto do Projeto
 
-Este projeto consiste na implementação de um programa em C para carregar, converter e analisar estatisticamente imagens utilizando a biblioteca SDL3. O programa processa arquivos nos formatos PNG, JPG e BMP e os converte em escala de cinza.
+Este projeto consiste na implementação de um programa em C para carregar, converter e analisar estatisticamente imagens utilizando a biblioteca SDL3. O programa processa arquivos nos formatos PNG, JPG e BMP e os converte em escala de cinza. Além de realizar operações e análises tendo como base o histograma de pixels da imagem.
 
 ## Como o Projeto Funciona
 
@@ -50,12 +50,10 @@ O projeto utiliza um Makefile para gerenciar as dependências e o processo de co
 ## Contribuintes
 
 **1. Carregamento de Imagem:**  
-- Nome 
-- Nome 
+- Matheus de Andrade Lourenço
 
 **2. Análise e Conversão para Escala de Cinza:**  
-- Nome 
-- Nome 
+- Matheus de Andrade Lourenço
 
 **3. Interface Gráfica:**  
 - Nome 
