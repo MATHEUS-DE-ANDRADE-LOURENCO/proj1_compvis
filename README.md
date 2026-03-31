@@ -70,6 +70,6 @@ $ ./proj8.exe "imagem.jpg"
 3. **Interface Gráfica:** Pietro Zanaga Neto
 4. **Análise e Exibição do Histograma:** Lucas Tuon de Matos
 5. **Equalização do Histograma:**: Pietro Zanaga Neto
-6. **Salvar Imagem**: Nome
+6. **Salvar Imagem**: Pietro Zanaga Neto
 7. **Gerenciamento do Repositório:** Matheus de Andrade Lourenço
 8. **Relatório e Documentação Técnica:** Lucas Tuon de Matos, Matheus de Andrade Lourenço e Murillo Cardoso Ferreira
